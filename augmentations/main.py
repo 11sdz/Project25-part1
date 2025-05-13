@@ -1,45 +1,56 @@
 import asyncio
 import random
+from utils import list_all_files
+from augmentations import apply_flip_horizontal, apply_flip_vertical, apply_random_features
 
+folder = "../frames/"
+output_folder = "../augmented/"
 
-from utils import *
-from augmentations import *
+async def process_image(img_path, lbl_path):
+    augmentations = []
 
-folder="../frames\\"
-output_folder= "../augmented\\"
+    # 25% chance to skip
+    if random.random() < 0.25:
+        return "skip", img_path, lbl_path
+
+    # Randomly choose to apply each augmentation
+    if random.random() < 0.5:
+        augmentations.append(apply_flip_horizontal)
+    if random.random() < 0.5:
+        augmentations.append(apply_flip_vertical)
+    if random.random() < 0.5:
+        augmentations.append(apply_random_features)
+
+    # Apply each selected augmentation and update paths
+    for aug in augmentations:
+        img_path, lbl_path = await aug(img_path, lbl_path, output_folder)
+
+    return "+".join([aug.__name__ for aug in augmentations]) or "none", img_path, lbl_path
 
 if __name__ == '__main__':
-    data_path = "../frames"
-    data = list_all_files(data_path)
+    images, labels = list_all_files(folder)
 
-    count_h=0
-    count_v=0
-    count_b=0
-    count_z=0
+    count = {
+        'skip': 0,
+        'apply_flip_horizontal': 0,
+        'apply_flip_vertical': 0,
+        'apply_random_features': 0,
+        'none': 0
+    }
 
-    for i in range(len(data[0])):
-        p=random.random()
-        if p < 0.5:
-            count_z+=1
-            continue
-        image_name = data[0][i]
-        label_name = data[1][i]
+    for img_name in images:
+        label_name = img_name.replace('.png', '.json')
+        img_path = folder + img_name
+        lbl_path = folder + label_name
 
-        if p < 0.6:
-            asyncio.run(process_flip_operations(folder, image_name, label_name, output_folder, i))
-            count_b+=1
-            continue
-        if p < 0.8:
-            asyncio.run(flip_horizontally(folder + image_name, folder + label_name))
-            count_h+=1
-            continue
-        if p <=1:
-            asyncio.run(flip_vertically(folder + image_name, folder + label_name))
-            count_v+=1
+        result, img_path, lbl_path = asyncio.run(process_image(img_path, lbl_path))
+        if result in count:
+            count[result] += 1
+        elif "+" in result:
+            for r in result.split("+"):
+                count[r] += 1
 
-    print("v and h=",count_b)
-    print("z=",count_z)
-    print("v=",count_v)
-    print("h=",count_h)
-
-    print("sum",count_b+count_z+count_v+count_h)
+    print("Skipped:", count['skip'])
+    print("Horizontal flips:", count['apply_flip_horizontal'])
+    print("Vertical flips:", count['apply_flip_vertical'])
+    print("Feature aug:", count['apply_random_features'])

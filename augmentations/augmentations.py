@@ -1,58 +1,34 @@
-import time
-
-import albumentations as A
-from utils import *
 import os
+import albumentations as A
+from utils import read_image, label_flip_horizontal, label_flip_vertically, label_feature_augmentation, save_augmented_pair
 
-async def flip_horizontally(image_path,label_path):
+async def apply_random_features(image_path, label_path, output_folder):
     image = await read_image(image_path)
-
-    height,width = image.shape[:2]
-
     transform = A.Compose([
-        A.HorizontalFlip(p=1),
-        A.MotionBlur(blur_limit=3, p=0.25),
-        A.MedianBlur(blur_limit=3, p=0.25),
-        A.RandomShadow(p=0.25),
+        A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+        A.RandomGamma(gamma_limit=(80, 120), p=0.5),
+        A.RandomShadow(p=0.5),
+        A.MotionBlur(blur_limit=3, p=0.3),
+        A.RGBShift(r_shift_limit=20, g_shift_limit=20, b_shift_limit=20, p=0.5),
+        A.GaussianBlur(p=0.3),
+        A.ColorJitter(p=0.4),
     ])
+    image_aug = transform(image=image)['image']
+    label = await label_feature_augmentation(label_path, image_aug)
+    return await save_augmented_pair(image_aug, label, image_path, label_path, output_folder, prefix="feat")
 
-    image = transform(image=image)['image']
-    label = await label_flip_horizontal(label_path,width,image)
-
-    json_filename = os.path.basename(label_path)
-    png_filename = os.path.basename(image_path)
-
-    await save_label(label, "..\\augmented\\" +"aug_"+json_filename)
-    await save_image(image, "..\\augmented\\" +"aug_"+png_filename)
-
-
-
-
-async def flip_vertically(image_path,label_path):
+async def apply_flip_horizontal(image_path, label_path, output_folder):
     image = await read_image(image_path)
-    height,width = image.shape[:2]
-    transform = A.Compose([
-        A.VerticalFlip(p=1),
-        A.ChannelShuffle(p=0.25),
-    ])
+    width = image.shape[1]
+    transform = A.HorizontalFlip(p=1)
+    image_aug = transform(image=image)['image']
+    label = await label_flip_horizontal(label_path, width, image_aug)
+    return await save_augmented_pair(image_aug, label, image_path, label_path, output_folder, prefix="hflip")
 
-    image = transform(image=image)['image']
-    label = await label_flip_vertically(label_path,height,image)
-
-    json_filename = os.path.basename(label_path)
-    png_filename = os.path.basename(image_path)
-
-    if (json_filename.startswith("aug_")):
-        json_filename = json_filename.replace("aug_", "")
-        png_filename = png_filename.replace("aug_", "")
-
-
-    await save_label(label, "..\\augmented\\" +"aug_"+json_filename)
-    await save_image(image, "..\\augmented\\" +"aug_"+png_filename)
-
-async def process_flip_operations(folder, image_name, label_name, output_folder, i):
-    # Flip horizontally first
-    await flip_horizontally(folder + image_name, folder + label_name)
-    # Then flip vertically
-    await flip_vertically(output_folder + "aug_" + image_name, output_folder + "aug_" + label_name)
-    print(image_name)
+async def apply_flip_vertical(image_path, label_path, output_folder):
+    image = await read_image(image_path)
+    height = image.shape[0]
+    transform = A.VerticalFlip(p=1)
+    image_aug = transform(image=image)['image']
+    label = await label_flip_vertically(label_path, height, image_aug)
+    return await save_augmented_pair(image_aug, label, image_path, label_path, output_folder, prefix="vflip")

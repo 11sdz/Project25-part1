@@ -1,110 +1,64 @@
-import json
-import cv2
 import os
+import json
 import base64
+import cv2
 
-
-folder="..\\frames\\"
-output_dir= "..\\augmented\\"
-
+output_dir = "..\\augmented\\"
 
 def list_all_files(directory):
     image_ext = ["png"]
     label_ext = ["json"]
     files = os.listdir(directory)
-
     labels = [f for f in files if any(f.endswith(ext) for ext in label_ext)]
-
-    # Filter images that have a matching JSON file
     images = [f for f in files if any(f.endswith(ext) for ext in image_ext) and os.path.splitext(f)[0]+".json" in labels]
-
     return images, labels
-
-async def label_flip_horizontal(label, width, image):
-    # Open the JSON file and load its contents
-    with open(label, 'r') as f:
-        labelme_data = json.load(f)
-
-    # Extract polygons from the LabelMe JSON data
-    polygons = []
-    for shape in labelme_data['shapes']:
-        if shape['shape_type'] == 'polygon':
-            polygons.append(shape['points'])
-
-    # Manually flip the polygons horizontally
-    flipped_polygons = []
-    for poly in polygons:
-        flipped_poly = [[width - x, y] for x, y in poly]  # Flip X-coordinates
-        flipped_polygons.append(flipped_poly)
-
-     # Update the JSON with flipped polygons
-    for i, shape in enumerate(labelme_data['shapes']):
-        if shape['shape_type'] == 'polygon':
-            shape['points'] = flipped_polygons[i]
-
-    filename = os.path.basename(label)
-    labelme_data['imagePath'] = output_dir + "aug_" + filename
-
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # Encode the flipped image back to base64
-    _, img_encoded = cv2.imencode('.png', image)
-    img_base64 = base64.b64encode(img_encoded).decode('utf-8')
-    labelme_data['imageData'] = img_base64
-
-    return labelme_data
-
-
-async def label_flip_vertically(label,height,image):
-    # Open the JSON file and load its contents
-    with open(label, 'r') as f:
-        labelme_data = json.load(f)
-
-    # Extract polygons from the LabelMe JSON data
-    polygons = []
-    for shape in labelme_data['shapes']:
-        if shape['shape_type'] == 'polygon':
-            polygons.append(shape['points'])
-
-    # Manually flip the polygons horizontally
-    flipped_polygons = []
-    for poly in polygons:
-        flipped_poly = [[x, height - y] for x, y in poly]  # Flip X-coordinates
-        flipped_polygons.append(flipped_poly)
-
-    # Update the JSON with flipped polygons
-    for i, shape in enumerate(labelme_data['shapes']):
-        if shape['shape_type'] == 'polygon':
-            shape['points'] = flipped_polygons[i]
-
-
-    filename = os.path.basename(label)
-    if filename.startswith("aug_"):
-        filename = filename.replace("aug_", "")
-    labelme_data['imagePath'] = output_dir + "aug_" + filename
-
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # Encode the flipped image back to base64
-    _, img_encoded = cv2.imencode('.png', image)
-    img_base64 = base64.b64encode(img_encoded).decode('utf-8')
-    labelme_data['imageData'] = img_base64
-
-    return labelme_data
-
 
 async def read_image(image_path):
     image = cv2.imread(image_path)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return image
+    return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-async def save_image(image, image_name):
-    cv2.imwrite(image_name, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+async def label_feature_augmentation(label_path, image):
+    with open(label_path, 'r') as f:
+        label_data = json.load(f)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    _, img_encoded = cv2.imencode('.png', image)
+    label_data['imageData'] = base64.b64encode(img_encoded).decode('utf-8')
+    return label_data
 
-async def save_label(label, label_name):
-    new_path = label_name
-    with open(new_path, 'w') as f:
-        json.dump(label, f , indent=4)
+async def label_flip_horizontal(label_path, width, image):
+    with open(label_path, 'r') as f:
+        label_data = json.load(f)
+    for shape in label_data['shapes']:
+        if shape['shape_type'] == 'polygon':
+            shape['points'] = [[width - x, y] for x, y in shape['points']]
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    _, img_encoded = cv2.imencode('.png', image)
+    label_data['imageData'] = base64.b64encode(img_encoded).decode('utf-8')
+    return label_data
 
+async def label_flip_vertically(label_path, height, image):
+    with open(label_path, 'r') as f:
+        label_data = json.load(f)
+    for shape in label_data['shapes']:
+        if shape['shape_type'] == 'polygon':
+            shape['points'] = [[x, height - y] for x, y in shape['points']]
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    _, img_encoded = cv2.imencode('.png', image)
+    label_data['imageData'] = base64.b64encode(img_encoded).decode('utf-8')
+    return label_data
 
+async def save_augmented_pair(image, label, image_path, label_path, output_folder, prefix):
+    image_name = os.path.basename(image_path)
+    label_name = os.path.basename(label_path)
+
+    save_image_path = os.path.join(output_folder, f"{prefix}_{image_name}")
+    save_label_path = os.path.join(output_folder, f"{prefix}_{label_name}")
+
+    label['imagePath'] = save_image_path
+
+    cv2.imwrite(save_image_path, cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
+    with open(save_label_path, 'w') as f:
+        json.dump(label, f, indent=4)
+
+    return save_image_path, save_label_path
 
