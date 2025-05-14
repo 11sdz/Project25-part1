@@ -1,6 +1,12 @@
 # YOLOv11 Segmentation Dataset Preparation
 
-This repository contains scripts for preparing and augmenting image datasets for YOLOv11 segmentation tasks. It includes utilities for converting JSON annotations to YOLO format and performing data augmentation.
+This repository contains scripts for preparing and augmenting image datasets for YOLOv11 segmentation tasks. The workflow is as follows:
+
+1. **Download Videos**: Use the provided script to download videos.
+2. **Label Images**: Label the images in the `frames/` folder using LabelMe.
+3. **Augment Dataset**: Use the augmentation scripts in the `augmentations/` directory to expand your dataset.
+4. **Convert Annotations**: Run `prepare.py` to convert JSON annotations to YOLO-compatible TXT files.
+5. **Copy Matching Images**: Use `copy-matching-png.py` to copy images that match the generated TXT label files.
 
 ## Project Structure
 
@@ -23,31 +29,30 @@ This repository contains scripts for preparing and augmenting image datasets for
 
 ## Usage
 
-1. **Prepare Dataset**:
-   - Place your JSON annotation files in the `augmented/` directory.
-   - Run `prepare.py` to convert annotations to YOLOv11 format:
-     ```bash
-     python prepare.py
-     ```
-   - The converted labels will be saved in `dataset/labels/`.
+1. **Download Videos**:
+   - Use the provided script to download videos.
 
-2. **Data Augmentation**:
+2. **Label Images**:
+   - Label the images in the `frames/` folder using LabelMe.
+
+3. **Augment Dataset**:
    - Navigate to the `augmentations/` directory.
    - Run the main augmentation script:
      ```bash
      python main.py
      ```
 
-3. **Copy Matching PNGs**:
+4. **Convert Annotations**:
+   - Run `prepare.py` to convert JSON annotations to YOLO format:
+     ```bash
+     python prepare.py
+     ```
+   - The converted labels will be saved in `dataset/labels/`.
+
+5. **Copy Matching Images**:
    - Use `copy-matching-png.py` to copy PNG files matching your JSON annotations:
      ```bash
      python copy-matching-png.py
-     ```
-
-4. **Copy Frames**:
-   - Use `copy-frames.py` to copy frame data:
-     ```bash
-     python copy-frames.py
      ```
 
 ## Class Mapping
