@@ -10,7 +10,7 @@ This repository contains scripts for preparing and augmenting image datasets for
 
 ## Project Structure
 
-- **prepare.py**: Converts JSON annotations from the `augmented/` directory into YOLOv11 segmentation format, saving the labels in `dataset/labels/`.
+- **prepare.py**: Converts JSON annotations from the `/frames` directory into YOLOv11 segmentation format, saving the labels in `dataset/labels/`.
 - **copy-matching-png.py**: Copies matching PNG files based on JSON annotations.
 - **copy-frames.py**: Copies frame data for further processing.
 - **script.py**: General utility script for dataset management.
