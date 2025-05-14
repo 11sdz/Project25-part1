@@ -59,6 +59,8 @@ This repository contains scripts for preparing and augmenting image datasets for
 
 The `prepare.py` script uses a predefined class mapping to convert class names to numeric IDs. Modify the `class_map` dictionary in `prepare.py` if your classes differ.
 
+[View on GitHub](https://github.com/11sdz/Project25-part2-modeltraining) - Model Training (Part2)
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
